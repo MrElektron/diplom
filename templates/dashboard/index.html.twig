@@ -3,11 +3,9 @@
 {% block title %}{{ "Dashboard" | trans() }}{% endblock %}
 
 {% block body %}
-    {#<form action="" method="post" enctype="multipart/form-data">#}
-        {#<input type="file" name="file[]">#}
-        {#<input type="submit" value="Отправить">#}
-    {#</form>#}
-
+    <div>
+        <a target="_blank" href="{{ path('export_file', {'id': 4}) }}"><i class="fa fa-fw fa-download text-inverse"></i> {{ 'Export file' | trans() }}</a>
+    </div>
     {% set vars = {'uploadFilePath' : path('upload_file')} %}
     {% include 'partial/upload_files_form.html.twig' with vars %}
 {% endblock %}
