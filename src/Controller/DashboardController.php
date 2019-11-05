@@ -6,10 +6,14 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\HttpFoundation\Response;
 use App\Entity\File;
+use App\Repository\RepositoryAwareTrait;
+use App\Service\Export\DocumentBuilder;
 
 class DashboardController extends AbstractController
 {
+    use RepositoryAwareTrait;
 
     /**
      * Finds and displays a Project entity.
@@ -119,11 +123,42 @@ class DashboardController extends AbstractController
 
         $basePath = 'files/' . $dirName;
         // Move the file to the directory where brochures are stored
-//        var_dump($basePath);
-//        die;
         $file->move(
             $basePath,
             $storedFileName
         );
+    }
+
+    /**
+     * @Route("/export-file/{id}", name="export_file")
+     */
+    public function exportFileAction(Request $request)
+    {
+        $fileId = $request->get('id');
+        /** @var File $document */
+        $file = $this->getFileRepository()->find($fileId);
+
+        $exportBuilder = new DocumentBuilder();
+        $phpWordObject = $exportBuilder->build($file);
+
+        $filename = 'File.docx';
+//        $filename = mb_ereg_replace("([^\w\s\d\-_~,;\[\]\(\).])", '', $filename);
+
+        $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWordObject, 'Word2007');
+
+        $tmp = tempnam('', 'document');
+
+        $writer->save($tmp);
+
+        $headers = [
+            'Content-Type' => 'application/docx',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"'
+        ];
+
+        $response = new Response(file_get_contents($tmp), 200, $headers);
+
+        unlink($tmp);
+
+        return $response;
     }
 }
