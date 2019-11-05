@@ -102,6 +102,9 @@
     "phpoffice/common": {
         "version": "0.2.9"
     },
+    "phpoffice/phpexcel": {
+        "version": "1.8.2"
+    },
     "phpoffice/phpword": {
         "version": "0.17.0"
     },
