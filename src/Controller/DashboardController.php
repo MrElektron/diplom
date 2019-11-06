@@ -150,6 +150,7 @@ class DashboardController extends AbstractController
             $projectDir = $this->getParameter('kernel.project_dir') . '/public/';
             $fullPath = $projectDir . $basePath . '/' . $storedFileName;
             $this->getDataOnDisciplines($fullPath);
+            $this->getDataOnSemesters($fullPath);
         } catch (\Exception $exception) {
             $flashbag->add('danger', $exception->getMessage());
             var_dump($exception->getMessage());
@@ -174,21 +175,22 @@ class DashboardController extends AbstractController
 
         $document->setValue('discipline', $discipline->getDisciplineIndex() . ' ' . mb_strtoupper($discipline->getName(), 'UTF-8'));
         $document->setValue('code', $specialty->getCode() . ' ' . $specialty->getName());
+        $document->setValue('number', $specialty->getNumber());
         $document->setValue('qualification', $specialty->getQualification());
-        $document->setValue('registrationNumber', '09.02.07-170511');
+        $document->setValue('registrationNumber', $specialty->getNumber());
         $document->setValue('shortDiscipline', $discipline->getName());
         $document->setValue('shortDisciplineUpper', mb_strtoupper($discipline->getName(), 'UTF-8'));
 
         $document->setValue('total', $discipline->getTotal());
-        $document->setValue('lessons', $discipline->getLessons());
-        $document->setValue('practicalLessons', $discipline->getPracticalLessons());
-        $document->setValue('laboratoryClasses', $discipline->getLaboratoryClasses());
-        $document->setValue('courseDesign', $discipline->getCourseDesign());
-        $document->setValue('consultations', $discipline->getConsultations());
-        $document->setValue('lessonWorkshop', $discipline->getLessonWorkshop());
-        $document->setValue('intermediateCertification', $discipline->getIntermediateCertification());
+        $document->setValue('lessons', ($discipline->getLessons() ? $discipline->getLessons() : 'Не предусмотрено'));
+        $document->setValue('practicalLessons', ($discipline->getPracticalLessons() ? $discipline->getPracticalLessons() : 'Не предусмотрено'));
+        $document->setValue('laboratoryClasses', ($discipline->getLaboratoryClasses() ? $discipline->getLaboratoryClasses() : 'Не предусмотрено'));
+        $document->setValue('courseDesign', ($discipline->getCourseDesign() ? $discipline->getCourseDesign() : 'Не предусмотрено'));
+        $document->setValue('consultations', ($discipline->getConsultations() ? $discipline->getConsultations() : 'Не предусмотрено'));
+        $document->setValue('lessonWorkshop', ($discipline->getLessonWorkshop() ? $discipline->getLessonWorkshop() : 'Не предусмотрено'));
+        $document->setValue('intermediateCertification', ($discipline->getIntermediateCertification() ? $discipline->getIntermediateCertification() : 'Дифф. зачёт'));
 
-        $fileName = 'РП_ЭВМ_09.02.07_Программист_2018.docx';
+        $fileName = 'РП_' . $specialty->getCode() . '_' . $specialty->getQualification() . '_' . date( 'Y' ) . ".docx";
         $document->saveAs('files/' . $fileName);
 
         $headers = [
@@ -203,26 +205,25 @@ class DashboardController extends AbstractController
         return $response;
     }
 
-    public function getDataOnDisciplines($fileName) {
+    public function getDataOnSemesters($fileName)
+    {
         $flashbag = $this->get('session')->getFlashBag();
         $flashbag->clear();
 
         try{
-        $excelReader = PHPExcel_IOFactory::createReaderForFile($fileName);
-        $excelObj = $excelReader->load($fileName);
+            $excelReader = PHPExcel_IOFactory::createReaderForFile($fileName);
+            $excelObj = $excelReader->load($fileName);
 
-        $worksheet = $excelObj->getSheet(2);
-        $lastRow = $worksheet->getHighestRow();
+            $worksheet = $excelObj->getSheet(2);
+            $lastRow = $worksheet->getHighestRow();
         } catch (\Exception $exception) {
             $flashbag->add('danger', $exception->getMessage());
             var_dump($exception->getMessage());
             die;
         }
 
-
         $em = $this->getEm();
         $em->createQuery('DELETE FROM App\Entity\Semester')->execute();
-
 
         $column = 20;
         do {
@@ -244,11 +245,12 @@ class DashboardController extends AbstractController
                     $intermediateCertification = $worksheet->getCellByColumnAndRow($column + 9, $row)->getValue();
                     $individualProject = $worksheet->getCellByColumnAndRow($column + 10, $row)->getValue();
 
-                    if ($index and strlen($index) >= 5 and !is_numeric($index) and $name) {
+                    if ($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1))and $name
+                        and $index != 'ПМ.01' and $index != 'ПМ.02' and $index != 'ПМ.04' and $index != 'ПМ.11' ) {
                         $semester = new Semester();
 
                         $semester
-                            ->setDiscipline($index)
+                            ->setDiscipline($this->getDisciplineRepository()->findOneBy(['discipline_index' => $index]))
                             ->setSemester($semesterNumber)
                             ->setMaximumLoad($maximumLoad)
                             ->setIndependentWork($independentWork)
@@ -270,6 +272,27 @@ class DashboardController extends AbstractController
             $column+=11;
         } while (is_numeric($semesterNumber));
 
+        $em->flush();
+
+    }
+
+    public function getDataOnDisciplines($fileName) {
+        $flashbag = $this->get('session')->getFlashBag();
+        $flashbag->clear();
+
+        try{
+        $excelReader = PHPExcel_IOFactory::createReaderForFile($fileName);
+        $excelObj = $excelReader->load($fileName);
+
+        $worksheet = $excelObj->getSheet(2);
+        $lastRow = $worksheet->getHighestRow();
+        } catch (\Exception $exception) {
+            $flashbag->add('danger', $exception->getMessage());
+            var_dump($exception->getMessage());
+            die;
+        }
+
+        $em = $this->getEm();
         $em->createQuery('DELETE FROM App\Entity\Discipline')->execute();
 
         for ($row = 10; $row <= $lastRow; $row++) {
@@ -293,7 +316,8 @@ class DashboardController extends AbstractController
             $intermediateCertification = $worksheet->getCellByColumnAndRow(18, $row)->getValue();
             $individualProject = $worksheet->getCellByColumnAndRow(19, $row)->getValue();
 
-            if ($index and strlen($index) >= 5 and !is_numeric($index) and $name) {
+            if ($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1))and $name
+                and $index != 'ПМ.01' and $index != 'ПМ.02' and $index != 'ПМ.04' and $index != 'ПМ.11' ) {
                 $discipline = new Discipline();
 
                 $discipline
@@ -329,7 +353,29 @@ class DashboardController extends AbstractController
         $code = $worksheet->getCellByColumnAndRow(0, 14)->getValue();
         $name = $worksheet->getCellByColumnAndRow(6, 14)->getValue();
         $qualification = $worksheet->getCellByColumnAndRow(6, 19)->getValue();
-        $number = $worksheet->getCellByColumnAndRow(20, 32)->getValue();
+        $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32)->getValue();
+
+        if ($code and $name and $number) {
+            $specialty = new Specialty();
+
+            $specialty
+                ->setCode($code)
+                ->setName($name)
+                ->setNumber($number)
+                ->setQualification($qualification)
+            ;
+
+            $em->persist($specialty);
+        }
+
+        $worksheet = $excelObj->getSheet(5);
+
+        $em->createQuery('DELETE FROM App\Entity\Specialty')->execute();
+
+        $code = $worksheet->getCellByColumnAndRow(0, 14)->getValue();
+        $name = $worksheet->getCellByColumnAndRow(6, 14)->getValue();
+        $qualification = $worksheet->getCellByColumnAndRow(6, 19)->getValue();
+        $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32)->getValue();
 
         if ($code and $name and $number) {
             $specialty = new Specialty();
