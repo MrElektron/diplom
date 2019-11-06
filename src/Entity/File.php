@@ -23,6 +23,12 @@ class File
     private $id;
 
     /**
+     * @ORM\ManyToOne(targetEntity="App\Entity\User")
+     * @ORM\JoinColumn(name="owner_id", referencedColumnName="id")
+     */
+    private $owner;
+
+    /**
      * @var string
      *
      * @ORM\Column(name="file_size", type="string", length=255)
@@ -79,6 +85,27 @@ class File
     public function getId()
     {
         return $this->id;
+    }
+
+    /**
+     * @param User $owner
+     * @return $this
+     */
+    public function setOwner($owner)
+    {
+        $this->owner = $owner;
+
+        return $this;
+    }
+
+    /**
+     * Get owner.
+     *
+     * @return User
+     */
+    public function getOwner()
+    {
+        return $this->owner;
     }
 
     /**
