@@ -17,7 +17,8 @@ class Semester
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=255)
+     * @ORM\ManyToOne(targetEntity="App\Entity\Discipline")
+     * @ORM\JoinColumn(name="discipline_id", referencedColumnName="id")
      */
     private $discipline;
 
@@ -86,12 +87,12 @@ class Semester
         return $this->id;
     }
 
-    public function getDiscipline(): ?string
+    public function getDiscipline(): ?Discipline
     {
         return $this->discipline;
     }
 
-    public function setDiscipline(string $discipline): self
+    public function setDiscipline(Discipline $discipline): self
     {
         $this->discipline = $discipline;
 
