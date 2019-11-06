@@ -101,9 +101,6 @@ class DashboardController extends AbstractController
             ;
 
             $this->moveFile($file, $projectFile);
-
-            $this->getEm()->persist($projectFile);
-            $this->getEm()->flush();
         }
     }
 
@@ -149,7 +146,11 @@ class DashboardController extends AbstractController
         try{
             $projectDir = $this->getParameter('kernel.project_dir') . '/public/';
             $fullPath = $projectDir . $basePath . '/' . $storedFileName;
-            $this->getDataOnDisciplines($fullPath);
+
+            $this->getEm()->persist($projectFile);
+            $this->getEm()->flush();
+
+            $this->getDataOnDisciplines($fullPath, $projectFile);
             $this->getDataOnSemesters($fullPath);
         } catch (\Exception $exception) {
             $flashbag->add('danger', $exception->getMessage());
@@ -276,7 +277,7 @@ class DashboardController extends AbstractController
 
     }
 
-    public function getDataOnDisciplines($fileName) {
+    public function getDataOnDisciplines($fileName, File $file) {
         $flashbag = $this->get('session')->getFlashBag();
         $flashbag->clear();
 
@@ -293,7 +294,7 @@ class DashboardController extends AbstractController
         }
 
         $em = $this->getEm();
-        $em->createQuery('DELETE FROM App\Entity\Discipline')->execute();
+//        $em->createQuery('DELETE FROM App\Entity\Discipline')->execute();
 
         for ($row = 10; $row <= $lastRow; $row++) {
             $index = $worksheet->getCellByColumnAndRow(1, $row)->getValue();
@@ -321,6 +322,7 @@ class DashboardController extends AbstractController
                 $discipline = new Discipline();
 
                 $discipline
+                    ->setFile($file)
                     ->setDisciplineIndex($index)
                     ->setName($name)
                     ->setExams($exams)
@@ -348,7 +350,7 @@ class DashboardController extends AbstractController
 
         $worksheet = $excelObj->getSheet(0);
 
-        $em->createQuery('DELETE FROM App\Entity\Specialty')->execute();
+//        $em->createQuery('DELETE FROM App\Entity\Specialty')->execute();
 
         $code = $worksheet->getCellByColumnAndRow(0, 14)->getValue();
         $name = $worksheet->getCellByColumnAndRow(6, 14)->getValue();
@@ -359,6 +361,7 @@ class DashboardController extends AbstractController
             $specialty = new Specialty();
 
             $specialty
+                ->setFile($file)
                 ->setCode($code)
                 ->setName($name)
                 ->setNumber($number)
@@ -370,25 +373,25 @@ class DashboardController extends AbstractController
 
         $worksheet = $excelObj->getSheet(5);
 
-        $em->createQuery('DELETE FROM App\Entity\Specialty')->execute();
-
-        $code = $worksheet->getCellByColumnAndRow(0, 14)->getValue();
-        $name = $worksheet->getCellByColumnAndRow(6, 14)->getValue();
-        $qualification = $worksheet->getCellByColumnAndRow(6, 19)->getValue();
-        $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32)->getValue();
-
-        if ($code and $name and $number) {
-            $specialty = new Specialty();
-
-            $specialty
-                ->setCode($code)
-                ->setName($name)
-                ->setNumber($number)
-                ->setQualification($qualification)
-            ;
-
-            $em->persist($specialty);
-        }
+//        $em->createQuery('DELETE FROM App\Entity\Specialty')->execute();
+//
+//        $code = $worksheet->getCellByColumnAndRow(0, 14)->getValue();
+//        $name = $worksheet->getCellByColumnAndRow(6, 14)->getValue();
+//        $qualification = $worksheet->getCellByColumnAndRow(6, 19)->getValue();
+//        $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32)->getValue();
+//
+//        if ($code and $name and $number) {
+//            $specialty = new Specialty();
+//
+//            $specialty
+//                ->setCode($code)
+//                ->setName($name)
+//                ->setNumber($number)
+//                ->setQualification($qualification)
+//            ;
+//
+//            $em->persist($specialty);
+//        }
 
         $em->flush();
     }

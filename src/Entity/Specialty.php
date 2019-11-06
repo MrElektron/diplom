@@ -17,6 +17,12 @@ class Specialty
     private $id;
 
     /**
+     * @ORM\ManyToOne(targetEntity="App\Entity\File")
+     * @ORM\JoinColumn(name="file_id", referencedColumnName="id")
+     */
+    private $file;
+
+    /**
      * @ORM\Column(type="string", length=255)
      */
     private $code;
@@ -39,6 +45,27 @@ class Specialty
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    /**
+     * @param File $file
+     * @return $this
+     */
+    public function setFile($file)
+    {
+        $this->file = $file;
+
+        return $this;
+    }
+
+    /**
+     * Get file.
+     *
+     * @return File
+     */
+    public function getFile()
+    {
+        return $this->file;
     }
 
     public function getCode(): ?string
