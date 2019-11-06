@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use App\Entity\Discipline;
 use App\Entity\Semester;
 use App\Entity\Specialty;
@@ -26,7 +27,11 @@ class DashboardController extends AbstractController
      */
     public function homepageAction(Request $request)
     {
-        return $this->render('dashboard/index.html.twig', []);
+        $files = $this->getFileRepository()->findAll();
+
+        return $this->render('dashboard/index.html.twig', [
+            'files' => $files
+        ]);
     }
 
     /**
@@ -67,6 +72,8 @@ class DashboardController extends AbstractController
     {
         if ($file->getSize() > 102400000) {
 //            throw new MaxFileSizeException($this->get('translator'), $file->getClientOriginalName());
+        } elseif($file->getClientOriginalExtension() != 'xls' && $file->getClientOriginalExtension() != 'xlsx') {
+            throw new \Exception('Неверное расширение файла, к загрузке разрешены файлы с расшинением xls или xlsx!');
         }
     }
 
@@ -77,8 +84,11 @@ class DashboardController extends AbstractController
     protected function processFile($file)
     {
         if ($file instanceof UploadedFile) {
+            /** @var User $user */
+            $user = $this->getUser();
+
             $projectFile = new File();
-            $projectFile = $this->buildProjectFile($projectFile);
+            $projectFile = $this->buildProjectFile($projectFile, $user);
 
             $format = !(empty($file->guessExtension()))
                 ? $file->guessExtension()
@@ -99,12 +109,14 @@ class DashboardController extends AbstractController
 
     /**
      * @param File $file
+     * @param User $user
      * @return File
      */
-    protected function buildProjectFile(File $file)
+    protected function buildProjectFile(File $file, User $user)
     {
         $file
             ->setUploadedAt(new \DateTime())
+            ->setOwner($user)
         ;
 
         return $file;
@@ -151,62 +163,45 @@ class DashboardController extends AbstractController
     public function exportFileAction(Request $request)
     {
         $fileId = $request->get('id');
-        /** @var File $document */
-        $file = $this->getFileRepository()->find($fileId);
 
-        $exportBuilder = new DocumentBuilder();
-        $phpWordObject = $exportBuilder->build($file);
+        $document = new \PhpOffice\PhpWord\TemplateProcessor($this->getParameter('kernel.project_dir') . '/public/TemplateFiles/word.docx');
 
-        $filename = 'File.docx';
-//        $filename = mb_ereg_replace("([^\w\s\d\-_~,;\[\]\(\).])", '', $filename);
+        $disciplines = $this->getDisciplineRepository()->findAll();
+        $discipline = $disciplines[1];
 
-        $writer = \PhpOffice\PhpWord\IOFactory::createWriter($phpWordObject, 'Word2007');
+        $specialties = $this->getSpecialtyRepository()->findAll();
+        $specialty = $specialties[0];
 
-        $tmp = tempnam('', 'document');
+        $document->setValue('discipline', $discipline->getDisciplineIndex() . ' ' . mb_strtoupper($discipline->getName(), 'UTF-8'));
+        $document->setValue('code', $specialty->getCode() . ' ' . $specialty->getName());
+        $document->setValue('qualification', $specialty->getQualification());
+        $document->setValue('registrationNumber', '09.02.07-170511');
+        $document->setValue('shortDiscipline', $discipline->getName());
+        $document->setValue('shortDisciplineUpper', mb_strtoupper($discipline->getName(), 'UTF-8'));
 
-        $writer->save($tmp);
+        $document->setValue('total', $discipline->getTotal());
+        $document->setValue('lessons', $discipline->getLessons());
+        $document->setValue('practicalLessons', $discipline->getPracticalLessons());
+        $document->setValue('laboratoryClasses', $discipline->getLaboratoryClasses());
+        $document->setValue('courseDesign', $discipline->getCourseDesign());
+        $document->setValue('consultations', $discipline->getConsultations());
+        $document->setValue('lessonWorkshop', $discipline->getLessonWorkshop());
+        $document->setValue('intermediateCertification', $discipline->getIntermediateCertification());
+
+        $fileName = 'РП_ЭВМ_09.02.07_Программист_2018.docx';
+        $document->saveAs('files/' . $fileName);
 
         $headers = [
             'Content-Type' => 'application/docx',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"'
+            'Content-Disposition' => "inline; filename=$fileName"
         ];
 
-        $response = new Response(file_get_contents($tmp), 200, $headers);
+        $response = new Response(file_get_contents('files/' . $fileName), 200, $headers);
 
-        unlink($tmp);
+        unlink('files/' . $fileName);
 
         return $response;
     }
-
-//    public function unloadWord($dbh) {
-//        $document = new \PhpOffice\PhpWord\TemplateProcessor('TemplateFiles/Шаблон.docx');
-//
-//        $sql = $dbh->query('SELECT * FROM discipline');
-//        $disciplines = $sql->fetchAll();
-//        $discipline = $disciplines[1];
-//
-//        $sql = $dbh->query('SELECT * FROM specialty');
-//        $specialty = $sql->fetchAll();
-//        $specialty = $specialty[0];
-//
-//        $document->setValue('discipline', $discipline['discipline_index'] . ' ' . mb_strtoupper($discipline['name'], 'UTF-8'));
-//        $document->setValue('code', $specialty['code'] . ' ' . $specialty['name']);
-//        $document->setValue('qualification', $specialty['qualification']);
-//        $document->setValue('registrationNumber', '09.02.07-170511');
-//        $document->setValue('shortDiscipline', $discipline['name']);
-//        $document->setValue('shortDisciplineUpper', mb_strtoupper($discipline['name'], 'UTF-8'));
-//
-//        $document->setValue('total', $discipline['total']);
-//        $document->setValue('lessons', $discipline['lessons']);
-//        $document->setValue('practicalLessons', $discipline['practical_lessons']);
-//        $document->setValue('laboratoryClasses', $discipline['laboratory_classes']);
-//        $document->setValue('courseDesign', $discipline['course_design']);
-//        $document->setValue('consultations', $discipline['consultations']);
-//        $document->setValue('lessonWorkshop', $discipline['lesson_workshop']);
-//        $document->setValue('intermediateCertification', $discipline['intermediate_certification']);
-//
-//        $document->saveAs('Files\РП_ЭВМ_09.02.07_Программист_2018.docx');
-//    }
 
     public function getDataOnDisciplines($fileName) {
         $flashbag = $this->get('session')->getFlashBag();
