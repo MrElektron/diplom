@@ -20,9 +20,30 @@
                 </td>
                 <td class="v-a-m">
                     <a target="_blank" href="{{ path('export_file', {'id': file.id}) }}"><i class="fa fa-fw fa-download text-inverse"></i> {{ 'Export file' | trans() }}</a>
+                    {#<a href=""#}
+                       {#class="export-file"#}
+                       {#data-toggle="modal"#}
+                       {#data-href="{{ path('export_file', {'id': file.id}) }}"#}
+                       {#data-target=".exportModal">#}
+                        {#<i class="fa fa-fw fa-download text-inverse"></i> {{ 'Export file' | trans() }}#}
+                    {#</a>#}
                 </td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+
+    {% import 'dashboard/partial/export_form.html.twig' as exportForm %}
+
+    {% set exportFormVars = {
+        'class': 'exportModal',
+        'formId': 'exportForm',
+        'title': 'Export file',
+        'content': exportForm.inputs(),
+        'submitTitle': 'Export'
+    }
+    %}
+
+    {% include 'partial/modal.html.twig' with exportFormVars %}
+
 {% endblock %}

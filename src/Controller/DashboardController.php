@@ -28,9 +28,11 @@ class DashboardController extends AbstractController
     public function homepageAction(Request $request)
     {
         $files = $this->getFileRepository()->findAll();
+        $disciplines = $this->getDisciplineRepository()->findAll();
 
         return $this->render('dashboard/index.html.twig', [
-            'files' => $files
+            'files' => $files,
+            'discipline' => $disciplines
         ]);
     }
 
@@ -87,36 +89,35 @@ class DashboardController extends AbstractController
             /** @var User $user */
             $user = $this->getUser();
 
-            $projectFile = new File();
-            $projectFile = $this->buildProjectFile($projectFile, $user);
-
             $format = !(empty($file->guessExtension()))
                 ? $file->guessExtension()
                 : $file->getClientOriginalExtension();
 
-            $projectFile
-                ->setFileName($file->getClientOriginalName())
-                ->setFormat($format)
-                ->setFileSize($file->getSize())
-            ;
+            $projectFile = new File();
+            $projectFile = $this->buildProjectFile($projectFile, $file, $user, $format);
 
             $this->moveFile($file, $projectFile);
         }
     }
 
     /**
-     * @param File $file
+     * @param File $projectFile
+     * @param UploadedFile $file
      * @param User $user
+     * @param string $format
      * @return File
      */
-    protected function buildProjectFile(File $file, User $user)
+    protected function buildProjectFile(File $projectFile, UploadedFile $file, User $user, string $format)
     {
-        $file
+        $projectFile
             ->setUploadedAt(new \DateTime())
             ->setOwner($user)
+            ->setFileName($file->getClientOriginalName())
+            ->setFormat($format)
+            ->setFileSize($file->getSize())
         ;
 
-        return $file;
+        return $projectFile;
     }
 
     /**
@@ -165,14 +166,16 @@ class DashboardController extends AbstractController
     public function exportFileAction(Request $request)
     {
         $fileId = $request->get('id');
+//        $disciplineId = $request->get('discipline');
+        /** @var File $file */
+        $file = $this->getFileRepository()->find($fileId);
+
+//        $discipline = $this->getDisciplineRepository()->findOneBy(['file' => $file, 'id' => $disciplineId]);
+        $disciplines = $this->getDisciplineRepository()->findBy(['file' => $file]);
+        $discipline = $disciplines[5];
+        $specialty = $this->getSpecialtyRepository()->findOneBy(['file' => $file]);
 
         $document = new \PhpOffice\PhpWord\TemplateProcessor($this->getParameter('kernel.project_dir') . '/public/TemplateFiles/word.docx');
-
-        $disciplines = $this->getDisciplineRepository()->findAll();
-        $discipline = $disciplines[1];
-
-        $specialties = $this->getSpecialtyRepository()->findAll();
-        $specialty = $specialties[0];
 
         $document->setValue('discipline', $discipline->getDisciplineIndex() . ' ' . mb_strtoupper($discipline->getName(), 'UTF-8'));
         $document->setValue('code', $specialty->getCode() . ' ' . $specialty->getName());
@@ -191,7 +194,7 @@ class DashboardController extends AbstractController
         $document->setValue('lessonWorkshop', ($discipline->getLessonWorkshop() ? $discipline->getLessonWorkshop() : 'Не предусмотрено'));
         $document->setValue('intermediateCertification', ($discipline->getIntermediateCertification() ? $discipline->getIntermediateCertification() : 'Дифф. зачёт'));
 
-        $fileName = 'РП_' . $specialty->getCode() . '_' . $specialty->getQualification() . '_' . date( 'Y' ) . ".docx";
+        $fileName = 'РП_' . $specialty->getCode() . '_' . $specialty->getQualification() . '_' . $discipline->getName() . '_' . date( 'Y' ) . ".docx";
         $document->saveAs('files/' . $fileName);
 
         $headers = [
