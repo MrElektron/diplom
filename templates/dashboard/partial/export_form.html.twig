@@ -1,0 +1,31 @@
+{% macro inputs(disciplines) %}
+    <div class="input-group">
+        {#<span class="input-group-btn">#}
+            {#<button class="btn btn-default" type="button"><i class="fa fa-fw fa-paperclip"></i></button>#}
+        {#</span>#}
+            {#<input type="file" class="form-control" required name="discipline[]" placeholder="{{ 'Upload File' | trans() }}"/>#}
+            {#<span class="input-group-btn ">#}
+            {#<button type="submit" class="btn btn-primary">{{ 'Upload File' | trans() }}</button>#}
+        {#</span>#}
+        <label class="col-sm-1 control-label">{{ "Discipline" | trans() }}</label>
+        <div class="col-sm-4 epics-wrapper">
+            <select class="form-control discipline select2-modal" name="discipline[]">
+                <option value="">{{ 'Select epic' | trans() }}</option>
+                {% for discipline in disciplines %}
+                    <option value="{{ discipline.id }}"
+                            {% if discipline.id is defined and discipline.id == discipline.id %}
+                                {{ "selected" }}
+                            {% endif %}>{{ discipline.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function(){
+            $('.export-file').click(function(){
+                var exportForm = $('#exportForm');
+                exportForm.attr('action', $(this).data('href'));
+            });
+        });
+    </script>
+{% endmacro %}
