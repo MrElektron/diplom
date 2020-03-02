@@ -160,55 +160,6 @@ class DashboardController extends AbstractController
         }
     }
 
-    /**
-     * @Route("/export-file/{id}", name="export_file")
-     */
-    public function exportFileAction(Request $request)
-    {
-        $fileId = $request->get('id');
-//        $disciplineId = $request->get('discipline');
-        /** @var File $file */
-        $file = $this->getFileRepository()->find($fileId);
-
-//        $discipline = $this->getDisciplineRepository()->findOneBy(['file' => $file, 'id' => $disciplineId]);
-        $disciplines = $this->getDisciplineRepository()->findBy(['file' => $file]);
-        $discipline = $disciplines[5];
-        $specialty = $this->getSpecialtyRepository()->findOneBy(['file' => $file]);
-
-        $document = new \PhpOffice\PhpWord\TemplateProcessor($this->getParameter('kernel.project_dir') . '/public/TemplateFiles/word.docx');
-
-        $document->setValue('discipline', $discipline->getDisciplineIndex() . ' ' . mb_strtoupper($discipline->getName(), 'UTF-8'));
-        $document->setValue('code', $specialty->getCode() . ' ' . $specialty->getName());
-        $document->setValue('number', $specialty->getNumber());
-        $document->setValue('qualification', $specialty->getQualification());
-        $document->setValue('registrationNumber', $specialty->getNumber());
-        $document->setValue('shortDiscipline', $discipline->getName());
-        $document->setValue('shortDisciplineUpper', mb_strtoupper($discipline->getName(), 'UTF-8'));
-
-        $document->setValue('total', $discipline->getTotal());
-        $document->setValue('lessons', ($discipline->getLessons() ? $discipline->getLessons() : 'Не предусмотрено'));
-        $document->setValue('practicalLessons', ($discipline->getPracticalLessons() ? $discipline->getPracticalLessons() : 'Не предусмотрено'));
-        $document->setValue('laboratoryClasses', ($discipline->getLaboratoryClasses() ? $discipline->getLaboratoryClasses() : 'Не предусмотрено'));
-        $document->setValue('courseDesign', ($discipline->getCourseDesign() ? $discipline->getCourseDesign() : 'Не предусмотрено'));
-        $document->setValue('consultations', ($discipline->getConsultations() ? $discipline->getConsultations() : 'Не предусмотрено'));
-        $document->setValue('lessonWorkshop', ($discipline->getLessonWorkshop() ? $discipline->getLessonWorkshop() : 'Не предусмотрено'));
-        $document->setValue('intermediateCertification', ($discipline->getIntermediateCertification() ? $discipline->getIntermediateCertification() : 'Дифф. зачёт'));
-
-        $fileName = 'РП_' . $specialty->getCode() . '_' . $specialty->getQualification() . '_' . $discipline->getName() . '_' . date( 'Y' ) . ".docx";
-        $document->saveAs('files/' . $fileName);
-
-        $headers = [
-            'Content-Type' => 'application/docx',
-            'Content-Disposition' => "inline; filename=$fileName"
-        ];
-
-        $response = new Response(file_get_contents('files/' . $fileName), 200, $headers);
-
-        unlink('files/' . $fileName);
-
-        return $response;
-    }
-
     public function getDataOnSemesters($fileName)
     {
         $flashbag = $this->get('session')->getFlashBag();
