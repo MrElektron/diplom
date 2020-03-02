@@ -1,0 +1,15 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'File' | trans() ~ ' - ' ~ document.fileName }}{% endblock %}
+
+{% block body %}
+    <form action="{{ path('export_file', {'id': document.id}) }}" method="post">
+        <select name="discipline" class="form-control" >
+            <option value="">{{ 'Select discipline' | trans() }}</option>
+            {% for discipline in disciplines %}
+                <option value="{{ discipline.id }}">{{ discipline.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-block btn-primary" id="_submit" name="_submit">{{ 'Export file'|trans }}</button>
+    </form>
+{% endblock %}
