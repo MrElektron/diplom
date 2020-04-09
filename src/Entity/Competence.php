@@ -17,10 +17,10 @@ class Competence
     private $id;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\Discipline")
-     * @ORM\JoinColumn(name="discipline_id", referencedColumnName="id")
+     * @ORM\ManyToOne(targetEntity="App\Entity\File")
+     * @ORM\JoinColumn(name="file_id", referencedColumnName="id")
      */
-    private $discipline;
+    private $file;
 
     /**
      * @var string
@@ -41,16 +41,25 @@ class Competence
         return $this->id;
     }
 
-    public function getDiscipline(): ?Discipline
+    /**
+     * @param File $file
+     * @return $this
+     */
+    public function setFile($file)
     {
-        return $this->discipline;
-    }
-
-    public function setDiscipline(Discipline $discipline): self
-    {
-        $this->discipline = $discipline;
+        $this->file = $file;
 
         return $this;
+    }
+
+    /**
+     * Get file.
+     *
+     * @return File
+     */
+    public function getFile()
+    {
+        return $this->file;
     }
 
     public function getName(): ?string

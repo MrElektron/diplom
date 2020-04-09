@@ -38,6 +38,23 @@ class DocumentController extends AbstractController
     }
 
     /**
+     * @Route("/document/{documentId}", name="delete_document")
+     */
+    public function deleteFileAction(Request $request)
+    {
+        $documentId = $request->get('documentId');
+
+        /** @var File $document */
+        $document = $this->getFileRepository()->find($documentId);
+
+        $em = $this->getEm();
+        $em->remove($document);
+        $em->flush();
+
+        return $this->redirect($request->headers->get('referer'));
+    }
+
+    /**
      * @Route("/export-file/{id}", name="export_file")
      */
     public function exportFileAction(Request $request)
@@ -49,15 +66,14 @@ class DocumentController extends AbstractController
 
         /** @var Discipline $discipline */
         $discipline = $this->getDisciplineRepository()->findOneBy(['id' => $disciplineId]);
-        $specialty = $this->getSpecialtyRepository()->findOneBy(['file' => $file]);
 
         $document = new \PhpOffice\PhpWord\TemplateProcessor($this->getParameter('kernel.project_dir') . '/public/TemplateFiles/word.docx');
 
         $document->setValue('discipline', $discipline->getDisciplineIndex() . ' ' . mb_strtoupper($discipline->getName(), 'UTF-8'));
-        $document->setValue('code', $specialty->getCode() . ' ' . $specialty->getName());
-        $document->setValue('number', $specialty->getNumber());
-        $document->setValue('qualification', $specialty->getQualification());
-        $document->setValue('registrationNumber', $specialty->getNumber());
+        $document->setValue('code', $file->getCode() . ' ' . $file->getName());
+        $document->setValue('number', $file->getNumber());
+        $document->setValue('qualification', $file->getQualification());
+        $document->setValue('registrationNumber', $file->getNumber());
         $document->setValue('shortDiscipline', $discipline->getName());
         $document->setValue('shortDisciplineUpper', mb_strtoupper($discipline->getName(), 'UTF-8'));
 
@@ -70,7 +86,7 @@ class DocumentController extends AbstractController
         $document->setValue('lessonWorkshop', ($discipline->getLessonWorkshop() ? $discipline->getLessonWorkshop() : 'Не предусмотрено'));
         $document->setValue('intermediateCertification', ($discipline->getIntermediateCertification() ? $discipline->getIntermediateCertification() : 'Дифф. зачёт'));
 
-        $fileName = 'РП_' . $specialty->getCode() . '_' . $specialty->getQualification() . '_' . $discipline->getName() . '_' . date( 'Y' ) . ".docx";
+        $fileName = 'РП_' . $file->getCode() . '_' . $file->getQualification() . '_' . $discipline->getName() . '_' . date( 'Y' ) . ".docx";
         $document->saveAs('files/' . $fileName);
 
         $headers = [

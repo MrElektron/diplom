@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Repository;
+use App\Entity\User;
 
 /**
  * ProjectFileRepository
@@ -10,5 +11,59 @@ namespace App\Repository;
  */
 class FileRepository extends \Doctrine\ORM\EntityRepository
 {
+
+    /**
+     * @param $filters
+     * @param int $currentPage
+     * @param $perPage
+     * @param string $order
+     * @param string $orderBy
+     * @return \Doctrine\ORM\Tools\Pagination\Paginator
+     */
+    public function getFiles(
+        $filters,
+        $orderBy,
+        $order,
+        $currentPage = 1,
+        $perPage = 20)
+    {
+        $qb = $this->createQueryBuilder('f');
+
+        $qb
+            ->select('f');
+
+        if (!empty($filters['user'])) {
+            $qb->andWhere('f.owner = :userId')
+                ->setParameter('userId', $filters['user']);
+        }
+
+//        if (!empty($filters['team'])) {
+//            $qb->andWhere(
+//                $qb->expr()->eq('emp.team', ':team')
+//            )
+//                ->setParameter('team', $filters['team']);
+//        }
+
+//        if (!empty($orderBy))
+//        {
+//            if ($orderBy == 'employeeRole') {
+//                $qb
+//                    ->leftJoin('emp.employeeRole', 'empt')
+//                    ->orderBy('empt.name', $order);
+//            } elseif ($orderBy == 'team'){
+//                $qb
+//                    ->leftJoin('emp.team', 'empt')
+//                    ->orderBy('empt.title', $order);
+//            } else {
+//                $qb->orderBy('emp.' . $orderBy, $order);
+//            }
+//        } else {
+//            $qb->orderBy('emp.lastname', 'ASC');
+//        }
+
+        $paginator = $this->paginate($qb, $currentPage, $perPage);
+
+        return $paginator;
+    }
 
 }

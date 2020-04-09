@@ -3,6 +3,35 @@
 {% block title %}{{ 'File' | trans() ~ ' - ' ~ document.fileName }}{% endblock %}
 
 {% block body %}
+    <a class="btn btn-sm btn-primary" href="/">
+        На главную
+    </a>
+    <table class="table table-hover">
+        <thead>
+        <tr>
+            <th class="small text-muted text-uppercase"><strong>{{ "File Name" | trans() }}</strong></th>
+            <th class="small text-muted text-uppercase"><strong>{{ "Download date" | trans() }}</strong></th>
+            <th class="small text-muted text-uppercase"><strong>{{ "Specialty code" | trans() }}</strong></th>
+            <th class="small text-muted text-uppercase"><strong>{{ "Specialty name" | trans() }}</strong></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td class="v-a-m">
+                <p>{{ document.fileName }}</p>
+            </td>
+            <td class="v-a-m">
+                <p>{{ document.uploadedAt | date('d/m/Y H:i') }}</p>
+            </td>
+            <td class="v-a-m">
+                <p>{{ document.code }}</p>
+            </td>
+            <td class="v-a-m">
+                <p>{{ document.name }}</p>
+            </td>
+        </tr>
+        </tbody>
+    </table>
     <form action="{{ path('export_file', {'id': document.id}) }}" method="post">
         <select name="discipline" class="form-control" >
             <option value="">{{ 'Select discipline' | trans() }}</option>

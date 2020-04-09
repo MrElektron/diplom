@@ -3,21 +3,37 @@
 {% block title %}{{ "Dashboard" | trans() }}{% endblock %}
 
 {% block body %}
+    <a class="btn btn-sm btn-primary" href="/logout">
+        Выйти из системы
+    </a>
     {% set vars = {'uploadFilePath' : path('upload_file')} %}
     {% include 'partial/upload_files_form.html.twig' with vars %}
     <table class="table table-hover">
         <thead>
         <tr>
             <th class="small text-muted text-uppercase"><strong>{{ "File Name" | trans() }}</strong></th>
+            <th class="small text-muted text-uppercase"><strong>{{ "Download date" | trans() }}</strong></th>
+            <th class="small text-muted text-uppercase"><strong>{{ "Specialty code" | trans() }}</strong></th>
+            <th class="small text-muted text-uppercase"><strong>{{ "Specialty name" | trans() }}</strong></th>
         </tr>
         </thead>
         <tbody>
-
         {% for file in files %}
             <tr>
                 <td class="v-a-m">
                     <a href="{{ path('document_details', {'documentId': file.id}) }}">{{ file.fileName }}</a>
-
+                </td>
+                <td class="v-a-m">
+                    <p>{{ file.uploadedAt | date('d/m/Y H:i') }}</p>
+                </td>
+                <td class="v-a-m">
+                    <p>{{ file.code }}</p>
+                </td>
+                <td class="v-a-m">
+                    <p>{{ file.name }}</p>
+                </td>
+                <td class="v-a-m">
+                    <a class="btn btn-sm btn-danger" href="{{ path('delete_document', {'documentId': file.id}) }}">{{ "Delete" | trans() }}</a>
                 </td>
             </tr>
         {% endfor %}

@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\Competence;
+use App\Entity\DisciplineCompetence;
 use App\Entity\User;
 use App\Entity\Discipline;
 use App\Entity\Semester;
@@ -27,7 +29,7 @@ class DashboardController extends AbstractController
      */
     public function homepageAction(Request $request)
     {
-        $files = $this->getFileRepository()->findAll();
+        $files = $this->getFileRepository()->findBy(['owner' => $this->getUser()]);
         $disciplines = $this->getDisciplineRepository()->findAll();
 
         return $this->render('dashboard/index.html.twig', [
@@ -44,7 +46,11 @@ class DashboardController extends AbstractController
     public function uploadFileAction(Request $request)
     {
         $file = $request->files->get('file');
-        $this->uploadFile($file);
+        if ($this->getFileRepository()->findOneBy(['fileName' => $file[0]->getClientOriginalName()])) {
+            echo 'Файл с таким именем уже загружен!';
+        } else {
+            $this->uploadFile($file);
+        }
 
         return $this->redirect($request->headers->get('referer'));
     }
@@ -109,6 +115,9 @@ class DashboardController extends AbstractController
      */
     protected function buildProjectFile(File $projectFile, UploadedFile $file, User $user, string $format)
     {
+        $flashbag = $this->get('session')->getFlashBag();
+        $flashbag->clear();
+
         $projectFile
             ->setUploadedAt(new \DateTime())
             ->setOwner($user)
@@ -116,6 +125,36 @@ class DashboardController extends AbstractController
             ->setFormat($format)
             ->setFileSize($file->getSize())
         ;
+
+        try{
+            $excelReader = PHPExcel_IOFactory::createReaderForFile($file);
+            $excelObj = $excelReader->load($file);
+
+            $worksheet = $excelObj->getSheet(0);
+        } catch (\Exception $exception) {
+            $flashbag->add('danger', $exception->getMessage());
+            var_dump($exception->getMessage());
+            die;
+        }
+
+        if ($worksheet->getCellByColumnAndRow(0, 14)->getValue() != 'по специальности среднего профессионального образования') {
+            $correctionIndex = 0;
+        } else {
+            $correctionIndex = 1;
+        }
+        $code = $worksheet->getCellByColumnAndRow(0, 14 + $correctionIndex)->getValue();
+        $name = $worksheet->getCellByColumnAndRow(6, 14 + $correctionIndex)->getValue();
+        $qualification = $worksheet->getCellByColumnAndRow(6, 19 + $correctionIndex)->getValue();
+        $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32 + $correctionIndex)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32 + $correctionIndex)->getValue();
+
+        if ($code and $name and $number) {
+            $projectFile
+                ->setCode($code)
+                ->setName($name)
+                ->setNumber($number)
+                ->setQualification($qualification)
+            ;
+        }
 
         return $projectFile;
     }
@@ -134,7 +173,6 @@ class DashboardController extends AbstractController
         $dirName = uniqid();
         $fileName = $file->getClientOriginalName();
         $storedFileName = $fileName;
-        $projectFile->setStoredFileName($storedFileName);
         $projectFile->setStoredFileDir($dirName);
 
         $basePath = 'files/' . $dirName;
@@ -153,6 +191,7 @@ class DashboardController extends AbstractController
 
             $this->getDataOnDisciplines($fullPath, $projectFile);
             $this->getDataOnSemesters($fullPath);
+            $this->getDataOnCompetence($fullPath,  $projectFile);
         } catch (\Exception $exception) {
             $flashbag->add('danger', $exception->getMessage());
             var_dump($exception->getMessage());
@@ -178,7 +217,6 @@ class DashboardController extends AbstractController
         }
 
         $em = $this->getEm();
-        $em->createQuery('DELETE FROM App\Entity\Semester')->execute();
 
         $column = 20;
         do {
@@ -200,27 +238,29 @@ class DashboardController extends AbstractController
                     $intermediateCertification = $worksheet->getCellByColumnAndRow($column + 9, $row)->getValue();
                     $individualProject = $worksheet->getCellByColumnAndRow($column + 10, $row)->getValue();
 
-                    if ($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1))and $name
-                        and $index != 'ПМ.01' and $index != 'ПМ.02' and $index != 'ПМ.04' and $index != 'ПМ.11' ) {
-                        $semester = new Semester();
+                    if ($index == "ПЦ") {
+                        break;
+                    }
 
-                        $semester
-                            ->setDiscipline($this->getDisciplineRepository()->findOneBy(['discipline_index' => $index]))
-                            ->setSemester($semesterNumber)
-                            ->setMaximumLoad($maximumLoad)
-                            ->setIndependentWork($independentWork)
-                            ->setConsultations($consultations)
-                            ->setObligatory($obligatory)
-                            ->setLessons($lessons)
-                            ->setPracticalLessons($practicalLessons)
-                            ->setLaboratoryClasses($laboratoryClasses)
-                            ->setLessonWorkshop($lessonWorkshop)
-                            ->setCourseDesign($courseDesign)
-                            ->setIntermediateCertification($intermediateCertification)
-                            ->setIndividualProject($individualProject)
-                        ;
+                    if ($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1))and $name) {
+                            $semester = new Semester();
 
-                        $em->persist($semester);
+                            $semester
+                                ->setDiscipline($this->getDisciplineRepository()->findOneBy(['discipline_index' => $index]))
+                                ->setSemester($semesterNumber)
+                                ->setMaximumLoad($maximumLoad)
+                                ->setIndependentWork($independentWork)
+                                ->setConsultations($consultations)
+                                ->setObligatory($obligatory)
+                                ->setLessons($lessons)
+                                ->setPracticalLessons($practicalLessons)
+                                ->setLaboratoryClasses($laboratoryClasses)
+                                ->setLessonWorkshop($lessonWorkshop)
+                                ->setCourseDesign($courseDesign)
+                                ->setIntermediateCertification($intermediateCertification)
+                                ->setIndividualProject($individualProject);
+
+                            $em->persist($semester);
                     }
                 }
             }
@@ -231,7 +271,7 @@ class DashboardController extends AbstractController
 
     }
 
-    public function getDataOnDisciplines($fileName, File $file) {
+    public function getDataOnDisciplines($fileName, $file) {
         $flashbag = $this->get('session')->getFlashBag();
         $flashbag->clear();
 
@@ -248,7 +288,6 @@ class DashboardController extends AbstractController
         }
 
         $em = $this->getEm();
-//        $em->createQuery('DELETE FROM App\Entity\Discipline')->execute();
 
         for ($row = 10; $row <= $lastRow; $row++) {
             $index = $worksheet->getCellByColumnAndRow(1, $row)->getValue();
@@ -271,8 +310,11 @@ class DashboardController extends AbstractController
             $intermediateCertification = $worksheet->getCellByColumnAndRow(18, $row)->getValue();
             $individualProject = $worksheet->getCellByColumnAndRow(19, $row)->getValue();
 
-            if ($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1))and $name
-                and $index != 'ПМ.01' and $index != 'ПМ.02' and $index != 'ПМ.04' and $index != 'ПМ.11' ) {
+            if ($index == "ПЦ") {
+                break;
+            }
+
+            if ($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1))and $name) {
                 $discipline = new Discipline();
 
                 $discipline
@@ -302,51 +344,75 @@ class DashboardController extends AbstractController
             }
         }
 
-        $worksheet = $excelObj->getSheet(0);
+        $em->flush();
+    }
 
-//        $em->createQuery('DELETE FROM App\Entity\Specialty')->execute();
+    public function getDataOnCompetence($fileName, $file) {
+        $flashbag = $this->get('session')->getFlashBag();
+        $flashbag->clear();
 
-        $code = $worksheet->getCellByColumnAndRow(0, 14)->getValue();
-        $name = $worksheet->getCellByColumnAndRow(6, 14)->getValue();
-        $qualification = $worksheet->getCellByColumnAndRow(6, 19)->getValue();
-        $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32)->getValue();
+        try{
+            $excelReader = PHPExcel_IOFactory::createReaderForFile($fileName);
+            $excelObj = $excelReader->load($fileName);
 
-        if ($code and $name and $number) {
-            $specialty = new Specialty();
-
-            $specialty
-                ->setFile($file)
-                ->setCode($code)
-                ->setName($name)
-                ->setNumber($number)
-                ->setQualification($qualification)
-            ;
-
-            $em->persist($specialty);
+            $worksheet = $excelObj->getSheet(4);
+            $lastRow = $worksheet->getHighestRow();
+        } catch (\Exception $exception) {
+            $flashbag->add('danger', $exception->getMessage());
+            var_dump($exception->getMessage());
+            die;
         }
+
+        $em = $this->getEm();
+
+        for ($row = 2; $row <= $lastRow; $row++) {
+            $name = $worksheet->getCellByColumnAndRow(0, $row)->getValue();
+            $description = $worksheet->getCellByColumnAndRow(4, $row)->getValue();
+
+            if ($name and $description) {
+                $competence = new Competence();
+
+                $competence
+                    ->setName($name)
+                    ->setDescription($description)
+                    ->setFile($file)
+                ;
+
+                $em->persist($competence);
+            }
+        }
+
+        $em->flush();
 
         $worksheet = $excelObj->getSheet(5);
 
-//        $em->createQuery('DELETE FROM App\Entity\Specialty')->execute();
-//
-//        $code = $worksheet->getCellByColumnAndRow(0, 14)->getValue();
-//        $name = $worksheet->getCellByColumnAndRow(6, 14)->getValue();
-//        $qualification = $worksheet->getCellByColumnAndRow(6, 19)->getValue();
-//        $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32)->getValue();
-//
-//        if ($code and $name and $number) {
-//            $specialty = new Specialty();
-//
-//            $specialty
-//                ->setCode($code)
-//                ->setName($name)
-//                ->setNumber($number)
-//                ->setQualification($qualification)
-//            ;
-//
-//            $em->persist($specialty);
-//        }
+        for ($row = 0; $row <= $lastRow; $row++) {
+            $index = $worksheet->getCellByColumnAndRow(2, $row)->getValue();
+            if ($index == "ПЦ") {
+                break;
+            }
 
+            $discipline = $this->getDisciplineRepository()->findOneBy(['discipline_index' => $index, 'file' => $file]);
+            if ($discipline instanceof Discipline) {
+                $i = 0;
+                while ($worksheet->getCellByColumnAndRow(5 + $i, $row)->getValue()) {
+                    $competence = $worksheet->getCellByColumnAndRow(5 + $i, $row)->getValue();
+                    $competence = $this->getCompetenceRepository()->findOneBy(['name' => $competence, 'file' => $file]);
+                    $disciplineCompetence = new DisciplineCompetence();
+
+                    $disciplineCompetence
+                        ->setDiscipline($discipline)
+                        ->setCompetence($competence)
+                    ;
+
+                    $em->persist($disciplineCompetence);
+
+                    $i++;
+                }
+            }
+        }
         $em->flush();
     }
+
+
 }
