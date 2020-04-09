@@ -59,23 +59,29 @@ class File
     /**
      * @var string
      *
-     * @ORM\Column(name="stored_file_name", type="text")
-     */
-    private $storedFileName;
-
-    /**
-     * @var string
-     *
-     * @ORM\Column(name="stored_preview_file_name", type="text", nullable=true)
-     */
-    private $storedPreviewFileName;
-
-    /**
-     * @var string
-     *
      * @ORM\Column(name="stored_file_dir", type="text", nullable=true)
      */
     private $storedFileDir;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $code;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $name;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $number;
+
+    /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $qualification;
 
     /**
      * Get id
@@ -204,39 +210,51 @@ class File
         return $this->fileName;
     }
 
-    /**
-     * @return string
-     */
-    public function getStoredFileName()
+    public function getCode(): ?string
     {
-        return $this->storedFileName ?: $this->fileName;
+        return $this->code;
     }
 
-    /**
-     * @param string $storedFileName
-     * @return $this
-     */
-    public function setStoredFileName($storedFileName)
+    public function setCode(string $code): self
     {
-        $this->storedFileName = $storedFileName;
+        $this->code = $code;
+
         return $this;
     }
 
-    /**
-     * @return string
-     */
-    public function getStoredPreviewFileName()
+    public function getName(): ?string
     {
-        return $this->storedPreviewFileName ?: $this->fileName;
+        return $this->name;
     }
 
-    /**
-     * @param string $storedPreviewFileName
-     * @return $this
-     */
-    public function setStoredPreviewFileName($storedPreviewFileName)
+    public function setName(string $name): self
     {
-        $this->storedPreviewFileName = $storedPreviewFileName;
+        $this->name = $name;
+
+        return $this;
+    }
+
+    public function getNumber(): ?string
+    {
+        return $this->number;
+    }
+
+    public function setNumber(string $number): self
+    {
+        $this->number = $number;
+
+        return $this;
+    }
+
+    public function getQualification(): ?string
+    {
+        return $this->qualification;
+    }
+
+    public function setQualification(string $qualification): self
+    {
+        $this->qualification = $qualification;
+
         return $this;
     }
 

@@ -5,7 +5,8 @@ namespace App\Repository;
 use App\Entity\File;
 use App\Entity\Discipline;
 use App\Entity\Semester;
-use App\Entity\Specialty;
+use App\Entity\Competence;
+use App\Entity\DisciplineCompetence;
 use App\Entity\User;
 
 Trait RepositoryAwareTrait
@@ -56,10 +57,18 @@ Trait RepositoryAwareTrait
     }
 
     /**
-     * @return SpecialtyRepository
+     * @return CompetenceRepository
      */
-    protected function getSpecialtyRepository()
+    protected function getCompetenceRepository()
     {
-        return $this->getDoctrine()->getRepository(Specialty::class);
+        return $this->getDoctrine()->getRepository(Competence::class);
+    }
+
+    /**
+     * @return DisciplineCompetenceRepository
+     */
+    protected function getDisciplineCompetenceRepository()
+    {
+        return $this->getDoctrine()->getRepository(DisciplineCompetence::class);
     }
 }
