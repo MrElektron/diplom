@@ -146,6 +146,7 @@ class DashboardController extends AbstractController
         $name = $worksheet->getCellByColumnAndRow(6, 14 + $correctionIndex)->getValue();
         $qualification = $worksheet->getCellByColumnAndRow(6, 19 + $correctionIndex)->getValue();
         $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32 + $correctionIndex)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32 + $correctionIndex)->getValue();
+        $educationForm = $worksheet->getCellByColumnAndRow(6, 27 + $correctionIndex)->getValue();
 
         if ($code and $name and $number) {
             $projectFile
@@ -153,6 +154,7 @@ class DashboardController extends AbstractController
                 ->setName($name)
                 ->setNumber($number)
                 ->setQualification($qualification)
+                ->setTrainingForm($educationForm)
             ;
         }
 
@@ -314,7 +316,8 @@ class DashboardController extends AbstractController
                 break;
             }
 
-            if ($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1))and $name) {
+            if (($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1)) and $name)
+            or ($index == "БД" or $index == "ПД" or $index == "ПОО" or substr($name, -8) == "цикл")) {
                 $discipline = new Discipline();
 
                 $discipline
@@ -339,6 +342,9 @@ class DashboardController extends AbstractController
                     ->setIntermediateCertification($intermediateCertification)
                     ->setIndividualProject($individualProject)
                 ;
+                if ($index == "БД" or $index == "ПД" or $index == "ПОО" or substr($name, -8) == "цикл") {
+                    $discipline->setCycle(true);
+                }
 
                 $em->persist($discipline);
             }

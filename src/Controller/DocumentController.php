@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\DisciplineCompetence;
 use App\Entity\User;
 use App\Entity\Discipline;
 use App\Entity\Semester;
@@ -29,7 +30,7 @@ class DocumentController extends AbstractController
 
         /** @var File $document */
         $document = $this->getFileRepository()->find($documentId);
-        $disciplines = $discipline = $this->getDisciplineRepository()->findAll();
+        $disciplines = $discipline = $this->getDisciplineRepository()->findBy(['cycle' => false, 'file' => $documentId]);
 
         return $this->render('document/details.html.twig', [
             'document' => $document,
@@ -46,6 +47,9 @@ class DocumentController extends AbstractController
 
         /** @var File $document */
         $document = $this->getFileRepository()->find($documentId);
+
+        unlink('files/' . $document->getStoredFileDir() . '/' . $document->getFileName());
+        rmdir('files/' . $document->getStoredFileDir());
 
         $em = $this->getEm();
         $em->remove($document);
@@ -65,11 +69,27 @@ class DocumentController extends AbstractController
         $file = $this->getFileRepository()->find($fileId);
 
         /** @var Discipline $discipline */
-        $discipline = $this->getDisciplineRepository()->findOneBy(['id' => $disciplineId]);
+        $discipline = $this->getDisciplineRepository()->findOneBy(['id' => $disciplineId, 'file' => $fileId]);
+
+        $disciplineCompetence = $this->getDisciplineCompetenceRepository()->getFiles($discipline, $fileId);
+
+        $cycle = $this->getDisciplineRepository()->findCycle($discipline->getDisciplineIndex(), $fileId);
 
         $document = new \PhpOffice\PhpWord\TemplateProcessor($this->getParameter('kernel.project_dir') . '/public/TemplateFiles/word.docx');
 
+        $i = 1;
+        foreach ($disciplineCompetence as $item) {
+            $competence = $item->getCompetence();
+
+            $document->setValue('competence' . $i, $competence->getName());
+            $document->setValue('competenceDescription' . $i, $competence->getDescription());
+
+            $i++;
+        }
+
         $document->setValue('discipline', $discipline->getDisciplineIndex() . ' ' . mb_strtoupper($discipline->getName(), 'UTF-8'));
+        $document->setValue('cycle', $cycle->getName());
+        $document->setValue('educationForm', $file->getTrainingForm());
         $document->setValue('code', $file->getCode() . ' ' . $file->getName());
         $document->setValue('number', $file->getNumber());
         $document->setValue('qualification', $file->getQualification());

@@ -19,32 +19,16 @@ class DisciplineRepository extends ServiceEntityRepository
         parent::__construct($registry, Discipline::class);
     }
 
-    // /**
-    //  * @return Discipline[] Returns an array of Discipline objects
-    //  */
-    /*
-    public function findByExampleField($value)
+    public function findCycle($value, $file)
     {
         return $this->createQueryBuilder('d')
-            ->andWhere('d.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('d.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
-
-    /*
-    public function findOneBySomeField($value): ?Discipline
-    {
-        return $this->createQueryBuilder('d')
-            ->andWhere('d.exampleField = :val')
-            ->setParameter('val', $value)
+            ->select('d')
+            ->andWhere('d.discipline_index = :val')
+            ->setParameter('val', substr($value,0, -3))
+            ->andWhere('d.file = :fileId')
+            ->setParameter('fileId', $file)
             ->getQuery()
             ->getOneOrNullResult()
         ;
     }
-    */
 }
