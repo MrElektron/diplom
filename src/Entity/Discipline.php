@@ -117,6 +117,11 @@ class Discipline
      */
     private $individual_project;
 
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $cycle = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -367,6 +372,18 @@ class Discipline
     public function setIndividualProject(?string $individual_project): self
     {
         $this->individual_project = $individual_project;
+
+        return $this;
+    }
+
+    public function getCycle(): ?bool
+    {
+        return $this->cycle;
+    }
+
+    public function setCycle(?bool $cycle): self
+    {
+        $this->cycle = $cycle;
 
         return $this;
     }

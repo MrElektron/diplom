@@ -20,32 +20,23 @@ class DisciplineCompetenceRepository extends ServiceEntityRepository
         parent::__construct($registry, DisciplineCompetence::class);
     }
 
-    // /**
-    //  * @return Competence[] Returns an array of Competence objects
-    //  */
-    /*
-    public function findByExampleField($value)
-    {
-        return $this->createQueryBuilder('c')
-            ->andWhere('c.exampleField = :val')
-            ->setParameter('val', $value)
-            ->orderBy('c.id', 'ASC')
-            ->setMaxResults(10)
-            ->getQuery()
-            ->getResult()
-        ;
-    }
-    */
 
-    /*
-    public function findOneBySomeField($value): ?Competence
+    /**
+     * @param $discipline
+     * @param $file
+     */
+    public function getFiles($discipline, $file)
     {
-        return $this->createQueryBuilder('c')
-            ->andWhere('c.exampleField = :val')
-            ->setParameter('val', $value)
-            ->getQuery()
-            ->getOneOrNullResult()
-        ;
+        $qb = $this->createQueryBuilder('dc');
+
+        $qb
+            ->select('dc')
+            ->andWhere('dc.discipline = :disciplineId')
+            ->setParameter('disciplineId', $discipline)
+            ->leftJoin('dc.discipline', 'd')
+            ->andWhere('d.file = :fileId')
+            ->setParameter('fileId', $file);
+
+        return $qb->getQuery()->getResult();
     }
-    */
 }

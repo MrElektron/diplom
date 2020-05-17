@@ -84,6 +84,11 @@ class File
     private $qualification;
 
     /**
+     * @ORM\Column(type="string", length=255)
+     */
+    private $trainingForm;
+
+    /**
      * Get id
      *
      * @return int
@@ -273,6 +278,24 @@ class File
     public function setStoredFileDir($storedFileDir)
     {
         $this->storedFileDir = $storedFileDir;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getTrainingForm()
+    {
+        return $this->trainingForm;
+    }
+
+    /**
+     * @param string $trainingForm
+     * @return File
+     */
+    public function setTrainingForm($trainingForm)
+    {
+        $this->trainingForm = $trainingForm;
         return $this;
     }
 }

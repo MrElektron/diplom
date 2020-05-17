@@ -45,7 +45,7 @@ class DisciplineCompetence
         return $this;
     }
 
-    public function getCompetence(): ?Discipline
+    public function getCompetence(): ?Competence
     {
         return $this->competence;
     }
