@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 use App\Entity\User;
+use App\Repository\RepositoryPaginatorTrait;
 
 /**
  * ProjectFileRepository
@@ -11,8 +12,10 @@ use App\Entity\User;
  */
 class FileRepository extends \Doctrine\ORM\EntityRepository
 {
+    use RepositoryPaginatorTrait;
 
     /**
+     * @param $user
      * @param $filters
      * @param int $currentPage
      * @param $perPage
@@ -21,45 +24,80 @@ class FileRepository extends \Doctrine\ORM\EntityRepository
      * @return \Doctrine\ORM\Tools\Pagination\Paginator
      */
     public function getFiles(
+        $user,
         $filters,
         $orderBy,
         $order,
-        $currentPage = 1,
-        $perPage = 20)
+        $currentPage,
+        $perPage)
     {
         $qb = $this->createQueryBuilder('f');
 
         $qb
             ->select('f');
 
-        if (!empty($filters['user'])) {
-            $qb->andWhere('f.owner = :userId')
-                ->setParameter('userId', $filters['user']);
+        $qb->andWhere('f.owner = :userId')
+            ->setParameter('userId', $user);
+
+        if (!empty($filters['fileName'])) {
+            $qb
+                ->andWhere($qb->expr()->like('f.fileName', ':fileName'))
+                ->setParameter('fileName', '%' . $filters['fileName'] . '%');
         }
 
-//        if (!empty($filters['team'])) {
-//            $qb->andWhere(
-//                $qb->expr()->eq('emp.team', ':team')
-//            )
-//                ->setParameter('team', $filters['team']);
-//        }
+        if (!empty($orderBy))
+        {
+            $qb->orderBy('f.' . $orderBy, $order);
+        }
 
-//        if (!empty($orderBy))
-//        {
-//            if ($orderBy == 'employeeRole') {
-//                $qb
-//                    ->leftJoin('emp.employeeRole', 'empt')
-//                    ->orderBy('empt.name', $order);
-//            } elseif ($orderBy == 'team'){
-//                $qb
-//                    ->leftJoin('emp.team', 'empt')
-//                    ->orderBy('empt.title', $order);
-//            } else {
-//                $qb->orderBy('emp.' . $orderBy, $order);
-//            }
-//        } else {
-//            $qb->orderBy('emp.lastname', 'ASC');
-//        }
+        $paginator = $this->paginate($qb, $currentPage, $perPage);
+
+        return $paginator;
+    }
+
+
+    /**
+     * @param $user
+     * @param $filters
+     * @param int $currentPage
+     * @param int $perPage
+     * @param string $order
+     * @param string $orderBy
+     * @return \Doctrine\ORM\Tools\Pagination\Paginator
+     */
+    public function getDaysOff(
+        $user,
+        $filters,
+        $orderBy,
+        $order,
+        $currentPage,
+        $perPage
+    ) {
+        $qb = $this->createQueryBuilder('d');
+
+        $qb->select('d');
+        $qb->leftJoin('d.status', 'ds');
+
+        $qb
+            ->andWhere('d.owner IN (:employees)')
+            ->setParameter("employees", $employees);
+
+        $qb = $this->applyFilters($qb, $filters);
+
+        if (!empty($orderBy)) {
+            if ($orderBy == 'owner') {
+                $qb
+                    ->leftJoin('d.owner', 'u')
+                    ->orderBy('u.lastname', $order);
+            } elseif ($orderBy == 'status') {
+                $qb
+                    ->orderBy('ds.status', $order);
+            } else {
+                $qb->orderBy('d.' . $orderBy, $order);
+            }
+        } else {
+            $qb->orderBy('ds.priority', 'ASC');
+        }
 
         $paginator = $this->paginate($qb, $currentPage, $perPage);
 

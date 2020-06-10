@@ -8,11 +8,34 @@
     </a>
     {% set vars = {'uploadFilePath' : path('upload_file')} %}
     {% include 'partial/upload_files_form.html.twig' with vars %}
+
+
+    <form class="form-inline filter-form" method="get" action="{{ path('homepage') }}">
+        <input type="hidden" name="order" value="{{ order }}"/>
+        <input type="hidden" name="orderBy" value="{{ orderBy }}"/>
+        <input type="text" placeholder="Имя файла" name="filters[fileName]">
+        <input type="submit" value="Найти">
+    </form>
     <table class="table table-hover">
         <thead>
         <tr>
-            <th class="small text-muted text-uppercase"><strong>{{ "File Name" | trans() }}</strong></th>
-            <th class="small text-muted text-uppercase"><strong>{{ "Download date" | trans() }}</strong></th>
+            {% set orderType = order == 'desc' ? 'asc' : 'desc' %}
+            {% set routeParams = { 'currentPage': currentPage, 'perPage': perPage, 'filters': filters } %}
+
+            <th class="small text-muted text-uppercase">
+                {% set routeParams = routeParams | merge({'orderBy': 'fileName', 'order': orderBy == 'fileName' ? orderType : 'asc'}) %}
+                <a href="{{ path('homepage', routeParams) }}">
+                    <strong>{{ "File Name" | trans() }}</strong>
+                    <i class="fa fa-sort{{ orderBy == 'fileName' ? '-' ~ order : '' }}"></i>
+                </a>
+            </th>
+            <th class="small text-muted text-uppercase">
+                {% set routeParams = routeParams | merge({'orderBy': 'uploadedAt', 'order': orderBy == 'uploadedAt' ? orderType : 'asc'}) %}
+                <a href="{{ path('homepage', routeParams) }}">
+                    <strong>{{ "Download date" | trans() }}</strong>
+                    <i class="fa fa-sort{{ orderBy == 'uploadedAt' ? '-' ~ order : '' }}"></i>
+                </a>
+            </th>
             <th class="small text-muted text-uppercase"><strong>{{ "Specialty code" | trans() }}</strong></th>
             <th class="small text-muted text-uppercase"><strong>{{ "Specialty name" | trans() }}</strong></th>
         </tr>
@@ -39,4 +62,20 @@
         {% endfor %}
         </tbody>
     </table>
+
+    {% set vars = {
+        'route': 'homepage',
+        'currentPage': currentPage,
+        'perPage': perPage,
+        'maxPages': maxPages,
+        'maxRows': maxRows,
+        'filters': filters,
+        'routeParams': {
+            'order': order,
+            'orderBy': orderBy
+        }
+    } %}
+
+    {% include 'partial/paginator.html.twig' with vars %}
+
 {% endblock %}

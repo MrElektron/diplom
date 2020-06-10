@@ -16,6 +16,8 @@ use App\Entity\File;
 use App\Repository\RepositoryAwareTrait;
 use App\Service\Export\DocumentBuilder;
 use PHPExcel_IOFactory;
+use PHPWord_IOFactory;
+use PhpOffice\PhpWord\PhpWord;
 
 class DocumentController extends AbstractController
 {
@@ -75,17 +77,61 @@ class DocumentController extends AbstractController
 
         $cycle = $this->getDisciplineRepository()->findCycle($discipline->getDisciplineIndex(), $fileId);
 
-        $document = new \PhpOffice\PhpWord\TemplateProcessor($this->getParameter('kernel.project_dir') . '/public/TemplateFiles/word.docx');
+//        if () {
+            $document = new \PhpOffice\PhpWord\TemplateProcessor($this->getParameter('kernel.project_dir') . '/public/TemplateFiles/Discipline work program.docx');
+//        } else {
+//            $document = new \PhpOffice\PhpWord\TemplateProcessor($this->getParameter('kernel.project_dir') . '/public/TemplateFiles/Professional module work program.docx');
+//        }
 
         $i = 1;
+        $competences = '';
+        //Create table
+        $phpWord = new PhpWord();
+        $section = $phpWord->addSection();
+        $styleCell =
+            [
+                'borderColor' =>'000000',
+                'borderSize' => 6,
+                'valign'=>'center'
+            ];
+        $boldCell =
+            [
+                'bold' =>true
+            ];
+        $table = $section->addTable();
+        $table->addRow();
+        $table->addCell(2400, $styleCell)->addText("Код ОК", $boldCell);
+        $table->addCell(3500, $styleCell, $boldCell)->addText("Умения", $boldCell);
+        $table->addCell(3800, $styleCell, $boldCell)->addText("Знания", $boldCell);
+
         foreach ($disciplineCompetence as $item) {
             $competence = $item->getCompetence();
+            $name = $competence->getName();
+            $description = $competence->getDescription();
 
-            $document->setValue('competence' . $i, $competence->getName());
-            $document->setValue('competenceDescription' . $i, $competence->getDescription());
+            $competences .= $name .  ' ' . $description . '<w:br />';
+            $table->addRow();
+            $table->addCell(2400, $styleCell)->addText($name, $boldCell);
+            $table->addCell(3500, $styleCell)->addText($description);
+            $table->addCell(3800, $styleCell)->addText("");
 
             $i++;
         }
+
+        if ($competences) {
+            $objWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'Word2007');
+
+            $fullxml = $objWriter->getWriterPart('Document')->write();
+
+            $competencesTable = preg_replace('/^[\s\S]*(<w:tbl\b.*<\/w:tbl>).*/', '$1', $fullxml);
+
+        } else {
+            $competences = '';
+            $competencesTable = '';
+        }
+
+        $document->setValue('competences', $competences);
+        $document->setValue('competencesTable', $competencesTable);
 
         $document->setValue('discipline', $discipline->getDisciplineIndex() . ' ' . mb_strtoupper($discipline->getName(), 'UTF-8'));
         $document->setValue('cycle', $cycle->getName());

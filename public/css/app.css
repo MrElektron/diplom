@@ -16,3 +16,11 @@ body .main-wrap {
   overflow-y: hidden;
   /*background-color: #1A1A1A;*/
 }
+
+.pagination li a {
+  margin: 5px;
+}
+
+.active {
+  font-weight: bold;
+}
