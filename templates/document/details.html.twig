@@ -33,7 +33,7 @@
         </tbody>
     </table>
     <form action="{{ path('export_file', {'id': document.id}) }}" method="post">
-        <select name="discipline" class="form-control" >
+        <select name="discipline" class="form-control" required>
             <option value="">{{ 'Select discipline' | trans() }}</option>
             {% for discipline in disciplines %}
                 <option value="{{ discipline.id }}">{{ discipline.name }}</option>

@@ -7,7 +7,6 @@ use App\Entity\DisciplineCompetence;
 use App\Entity\User;
 use App\Entity\Discipline;
 use App\Entity\Semester;
-use App\Entity\Specialty;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -29,12 +28,36 @@ class DashboardController extends AbstractController
      */
     public function homepageAction(Request $request)
     {
-        $files = $this->getFileRepository()->findBy(['owner' => $this->getUser()]);
+        $countFilesOnPage = 10;
+        $user = $this->getUser()->getId();
+        $filters = $request->get('filters');
+        $order = $request->get('order');
+        $orderBy = $request->get('orderBy');
+        $currentPage = $request->get('page', 1);
+        $perPage = $request->get('perPage', $countFilesOnPage);
+
+        $files = $this->getFileRepository()->getFiles(
+            $user,
+            $filters,
+            $orderBy,
+            $order,
+            $currentPage,
+            $perPage
+        );
+        $maxRows = count($files);
+        $maxPages = $maxRows / $countFilesOnPage;
         $disciplines = $this->getDisciplineRepository()->findAll();
 
         return $this->render('dashboard/index.html.twig', [
             'files' => $files,
-            'discipline' => $disciplines
+            'discipline' => $disciplines,
+            'filters' => $filters,
+            'order' => $order,
+            'orderBy' => $orderBy,
+            'perPage' => $perPage,
+            'currentPage' => $currentPage,
+            'maxRows' => $maxRows,
+            'maxPages' => $maxPages
         ]);
     }
 
@@ -148,7 +171,7 @@ class DashboardController extends AbstractController
         $number = 'от ' . $worksheet->getCellByColumnAndRow(13, 32 + $correctionIndex)->getValue() . '., №' . $worksheet->getCellByColumnAndRow(20, 32 + $correctionIndex)->getValue();
         $educationForm = $worksheet->getCellByColumnAndRow(6, 27 + $correctionIndex)->getValue();
 
-        if ($code and $name and $number) {
+        if (isset($code) and isset($name) and isset($number)) {
             $projectFile
                 ->setCode($code)
                 ->setName($name)
@@ -156,6 +179,10 @@ class DashboardController extends AbstractController
                 ->setQualification($qualification)
                 ->setTrainingForm($educationForm)
             ;
+        } else {
+//            $flashbag->add('danger', 'Файл содержит ошибки или не является файлом учебного плана.');
+            var_dump('Файл содержит ошибки или не является файлом учебного плана.');
+            die;
         }
 
         return $projectFile;
@@ -183,7 +210,6 @@ class DashboardController extends AbstractController
             $basePath,
             $storedFileName
         );
-
         try{
             $projectDir = $this->getParameter('kernel.project_dir') . '/public/';
             $fullPath = $projectDir . $basePath . '/' . $storedFileName;
