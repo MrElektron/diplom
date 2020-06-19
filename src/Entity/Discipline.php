@@ -122,6 +122,16 @@ class Discipline
      */
     private $cycle = false;
 
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $professional_module = false;
+
+    /**
+     * @ORM\Column(type="boolean")
+     */
+    private $include = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -384,6 +394,30 @@ class Discipline
     public function setCycle(?bool $cycle): self
     {
         $this->cycle = $cycle;
+
+        return $this;
+    }
+
+    public function getProfessionalModule(): ?bool
+    {
+        return $this->professional_module;
+    }
+
+    public function setProfessionalModule(?bool $professional_module): self
+    {
+        $this->professional_module = $professional_module;
+
+        return $this;
+    }
+
+    public function getInclude(): ?bool
+    {
+        return $this->include;
+    }
+
+    public function setInclude(?bool $include): self
+    {
+        $this->include = $include;
 
         return $this;
     }
