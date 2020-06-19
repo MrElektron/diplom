@@ -28,7 +28,7 @@ class DashboardController extends AbstractController
      */
     public function homepageAction(Request $request)
     {
-        $countFilesOnPage = 10;
+        $countFilesOnPage = 20;
         $user = $this->getUser()->getId();
         $filters = $request->get('filters');
         $order = $request->get('order');
@@ -317,6 +317,7 @@ class DashboardController extends AbstractController
 
         $em = $this->getEm();
 
+        $include = false;
         for ($row = 10; $row <= $lastRow; $row++) {
             $index = $worksheet->getCellByColumnAndRow(1, $row)->getValue();
             $name = $worksheet->getCellByColumnAndRow(2, $row)->getValue();
@@ -338,12 +339,8 @@ class DashboardController extends AbstractController
             $intermediateCertification = $worksheet->getCellByColumnAndRow(18, $row)->getValue();
             $individualProject = $worksheet->getCellByColumnAndRow(19, $row)->getValue();
 
-            if ($index == "ПЦ") {
-                break;
-            }
-
-            if (($index and mb_strlen($index) >= 5 and is_numeric(substr($index, -1)) and $name)
-            or ($index == "БД" or $index == "ПД" or $index == "ПОО" or substr($name, -8) == "цикл")) {
+            if ($index and ((mb_strlen($index) >= 5 and is_numeric(substr($index, -1)) and $name)
+            or ($index == "БД" or $index == "ПД" or $index == "ПОО" or substr($name, -8) == "цикл") or (mb_substr($index, 0,2) == "ПМ" and mb_strlen($index) == 5))) {
                 $discipline = new Discipline();
 
                 $discipline
@@ -367,9 +364,17 @@ class DashboardController extends AbstractController
                     ->setCourseDesign($courseDesign)
                     ->setIntermediateCertification($intermediateCertification)
                     ->setIndividualProject($individualProject)
+                    ->setInclude($include)
                 ;
+
                 if ($index == "БД" or $index == "ПД" or $index == "ПОО" or substr($name, -8) == "цикл") {
                     $discipline->setCycle(true);
+                } elseif (mb_substr($index, 0,2) == "ПМ" and mb_strlen($index) == 5) {
+                    $discipline
+                        ->setProfessionalModule(true)
+                        ->setInclude(false)
+                    ;
+                    $include = true;
                 }
 
                 $em->persist($discipline);
@@ -417,13 +422,18 @@ class DashboardController extends AbstractController
         $em->flush();
 
         $worksheet = $excelObj->getSheet(5);
-
+        $lastChance = false;
+        $discipline = '';
+        $lastDiscipline = '';
         for ($row = 0; $row <= $lastRow; $row++) {
             $index = $worksheet->getCellByColumnAndRow(2, $row)->getValue();
-            if ($index == "ПЦ") {
-                break;
+            if (mb_substr($index,0,2) == "ПМ") {
+                $lastChance = true;
             }
 
+            if ($discipline) {
+                $lastDiscipline = $discipline;
+            }
             $discipline = $this->getDisciplineRepository()->findOneBy(['discipline_index' => $index, 'file' => $file]);
             if ($discipline instanceof Discipline) {
                 $i = 0;
@@ -434,6 +444,24 @@ class DashboardController extends AbstractController
 
                     $disciplineCompetence
                         ->setDiscipline($discipline)
+                        ->setCompetence($competence)
+                    ;
+
+                    $em->persist($disciplineCompetence);
+
+                    $i++;
+                }
+            } elseif($lastChance) {
+                $lastChance = false;
+
+                $i = 0;
+                while ($worksheet->getCellByColumnAndRow(5 + $i, $row)->getValue()) {
+                    $competence = $worksheet->getCellByColumnAndRow(5 + $i, $row)->getValue();
+                    $competence = $this->getCompetenceRepository()->findOneBy(['name' => $competence, 'file' => $file]);
+                    $disciplineCompetence = new DisciplineCompetence();
+
+                    $disciplineCompetence
+                        ->setDiscipline($lastDiscipline)
                         ->setCompetence($competence)
                     ;
 
